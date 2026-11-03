@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git &amp; GitHub — Interactive Guide for Manual Testers</title>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --bg-elev: #121829;
+    --bg-card: #161d33;
+    --border: #263153;
+    --text: #e6ecff;
+    --text-dim: #9aa5c7;
+    --accent: #6ea8ff;
+    --accent-2: #a78bfa;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(110,168,255,0.08), transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(167,139,250,0.08), transparent 40%);
+  }
+
+  .sidebar {
+    width: 260px;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sidebar .subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 2px;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .nav-item:hover { background: var(--bg-card); color: var(--text); }
+  .nav-item.active {
+    background: linear-gradient(90deg, rgba(110,168,255,0.15), rgba(167,139,250,0.08));
+    color: var(--text);
+    border-left: 3px solid var(--accent);
+    padding-left: 9px;
+  }
+
+  .nav-icon { width: 18px; display: inline-flex; justify-content: center; font-size: 13px; }
+
+  .main {
+    flex: 1;
+    padding: 40px 56px;
+    max-width: 1150px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section { display: none; }
+  .section.active { display: block; animation: fadeUp 0.4s ease; }
+
+  .section h1 { font-size: 36px; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .section .lead { font-size: 17px; color: var(--text-dim); margin-bottom: 32px; line-height: 1.6; }
+  .section h2 { font-size: 22px; margin: 32px 0 16px; display: flex; align-items: center; gap: 10px; }
+  .section h3 { font-size: 16px; margin: 20px 0 10px; color: var(--accent); }
+  .section p { line-height: 1.7; color: #cfd6ee; margin-bottom: 14px; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card.accent { border-left: 4px solid var(--accent); }
+  .card.tester {
+    border-left: 4px solid var(--amber);
+    background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(22,29,51,0.95));
+  }
+  .card.tester h3 { color: var(--amber); margin-top: 0; display: flex; align-items: center; gap: 8px; }
+
+  /* ===== Terminal ===== */
+  .terminal {
+    background: #05080f;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .terminal-header {
+    background: #1a2238;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .d-red { background: #ff5f56; }
+  .d-amb { background: #ffbd2e; }
+  .d-grn { background: #27c93f; }
+  .term-title { color: var(--text-dim); font-size: 12px; margin-left: 10px; }
+  .terminal-body { padding: 14px 18px; color: #d1d9f0; line-height: 1.7; white-space: pre-wrap; }
+  .term-prompt { color: var(--green); }
+  .term-cmd { color: #fff; }
+  .term-out { color: var(--text-dim); }
+  .term-success { color: var(--green); }
+  .term-warn { color: var(--amber); }
+  .term-err { color: var(--red); }
+
+  /* ===== Command runner ===== */
+  .cmd-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .cmd-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .cmd-btn:hover {
+    border-color: var(--accent);
+    background: rgba(110,168,255,0.1);
+    transform: translateY(-1px);
+  }
+  .cmd-btn.active {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: #fff;
+  }
+
+  /* ===== Interactive controls ===== */
+  .interactive-box {
+    background: #05080f;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .btn {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--sans);
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(110,168,255,0.3); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn.secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn.secondary:hover { background: rgba(110,168,255,0.1); border-color: var(--accent); }
+  .btn.danger { background: var(--red); }
+  .btn.success { background: var(--green); color: #052e16; }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+  .step-indicator .current {
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* ===== Animated workflow zones ===== */
+  .workflow-anim {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .zone {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    transition: all 0.4s;
+    min-height: 160px;
+  }
+
+  .zone.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 24px rgba(110,168,255,0.3);
+    transform: translateY(-4px);
+  }
+
+  .zone-icon { font-size: 28px; margin-bottom: 6px; }
+  .zone-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .zone-cmd { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+
+  .zone-files {
+    margin-top: 10px;
+    min-height: 50px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .file-chip {
+    background: rgba(110,168,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-family: var(--mono);
+    animation: popIn 0.4s ease;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== Interactive branch canvas ===== */
+  .branch-canvas {
+    background: #05080f;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 220px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .branch-canvas svg {
+    width: 100%;
+    height: 220px;
+  }
+
+  /* ===== Grids ===== */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .mini-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    transition: all 0.2s;
+  }
+  .mini-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .mini-card .mc-icon { font-size: 24px; margin-bottom: 10px; }
+  .mini-card h4 { font-size: 15px; margin-bottom: 6px; }
+  .mini-card p { font-size: 13px; color: var(--text-dim); margin: 0; line-height: 1.5; }
+
+  /* ===== PR flow (horizontal animated steps) ===== */
+  .pr-flow {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 20px 0;
+  }
+
+  .pr-step {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.4s;
+    position: relative;
+    opacity: 0.4;
+  }
+
+  .pr-step.active {
+    opacity: 1;
+    border-color: var(--accent);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(110,168,255,0.3);
+  }
+
+  .pr-step.done {
+    opacity: 1;
+    border-color: var(--green);
+    background: rgba(74,222,128,0.08);
+  }
+
+  .pr-step .ps-icon { font-size: 24px; margin-bottom: 6px; }
+  .pr-step .ps-num { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-bottom: 2px; }
+  .pr-step .ps-title { font-size: 12px; font-weight: 600; }
+
+  .pr-detail {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    animation: fadeUp 0.3s ease;
+  }
+  .pr-detail h3 { margin-top: 0; color: var(--accent); }
+
+  /* ===== Code (Playwright) ===== */
+  .code-block {
+    background: #05080f;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .code-block .kw { color: #c084fc; }
+  .code-block .fn { color: #60a5fa; }
+  .code-block .str { color: #86efac; }
+  .code-block .com { color: #64748b; font-style: italic; }
+  .code-block .num { color: #fbbf24; }
+  .code-block .obj { color: #22d3ee; }
+
+  /* ===== Cheat table ===== */
+  .cheat-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .cheat-table th, .cheat-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .cheat-table th {
+    background: #1a2238;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+  }
+  .cheat-table td:first-child {
+    font-family: var(--mono);
+    color: var(--cyan);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .cheat-table tr:last-child td { border-bottom: none; }
+  .cheat-table tr:hover { background: rgba(110,168,255,0.05); }
+
+  code {
+    font-family: var(--mono);
+    background: rgba(110,168,255,0.12);
+    color: var(--cyan);
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+  }
+
+  .progress-wrap {
+    position: fixed;
+    top: 0;
+    left: 260px;
+    right: 0;
+    height: 3px;
+    background: var(--bg-elev);
+    z-index: 100;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    width: 10%;
+    transition: width 0.3s ease;
+  }
+
+  /* Playwright + Git combined flow */
+  .combo-flow {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+
+  .combo-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--border);
+    opacity: 0.35;
+    transition: opacity 0.3s;
+  }
+  .combo-step.visible { opacity: 1; }
+  .combo-step:last-child { border-bottom: none; }
+
+  .combo-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .combo-body { flex: 1; }
+  .combo-body h4 { margin-bottom: 6px; font-size: 15px; }
+  .combo-body p { font-size: 13px; color: var(--text-dim); margin: 0 0 8px; }
+
+  /* Branch simulator log */
+  .sim-log {
+    background: #05080f;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    max-height: 120px;
+    overflow-y: auto;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .sim-log .log-line { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; padding: 16px; }
+    .main { padding: 20px; }
+    .section h1 { font-size: 28px; }
+    .progress-wrap { left: 0; }
+    .workflow-anim { grid-template-columns: 1fr 1fr; }
+    .pr-flow { grid-template-columns: 1fr 1fr; gap: 8px; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+<aside class="sidebar">
+  <h2>Git &amp; GitHub</h2>
+  <div class="subtitle">Interactive · For Testers</div>
+
+  <div class="nav-item active" data-target="s-welcome"><span class="nav-icon">👋</span>Welcome</div>
+  <div class="nav-item" data-target="s-git"><span class="nav-icon">🧠</span>What is Git?</div>
+  <div class="nav-item" data-target="s-github"><span class="nav-icon">🐙</span>What is GitHub?</div>
+  <div class="nav-item" data-target="s-workflow"><span class="nav-icon">🔁</span>Workflow (Animated)</div>
+  <div class="nav-item" data-target="s-commands"><span class="nav-icon">💻</span>Basic Commands</div>
+  <div class="nav-item" data-target="s-branches"><span class="nav-icon">🌿</span>Branches (Live)</div>
+  <div class="nav-item" data-target="s-pr"><span class="nav-icon">🔀</span>Pull Request Flow</div>
+  <div class="nav-item" data-target="s-merge"><span class="nav-icon">➕</span>Merge (Animated)</div>
+  <div class="nav-item" data-target="s-rebase"><span class="nav-icon">📏</span>Rebase (Animated)</div>
+  <div class="nav-item" data-target="s-squash"><span class="nav-icon">📦</span>Squash (Animated)</div>
+  <div class="nav-item" data-target="s-playwright"><span class="nav-icon">🎭</span>Playwright + Git</div>
+  <div class="nav-item" data-target="s-cheat"><span class="nav-icon">📋</span>Cheat Sheet</div>
+</aside>
+
+<main class="main">
+
+  <!-- ============ WELCOME ============ -->
+  <section id="s-welcome" class="section active">
+    <h1>Git &amp; GitHub, Made Interactive</h1>
+    <p class="lead">A hands-on guide designed for <strong>manual testers</strong>. Every concept has a button to click, a flow to animate, or a command to run — not just text to read.</p>
+
+    <div class="card accent">
+      <h3>🎯 New in this version</h3>
+      <p>✨ Animated workflow with files flowing between zones<br>
+      ✨ Live branch simulator — create commits and branches by clicking<br>
+      ✨ Step-through merge, rebase, and squash animations<br>
+      ✨ Real Playwright test code wired to actual git commands</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="mini-card">
+        <div class="mc-icon">▶️</div>
+        <h4>Watch it happen</h4>
+        <p>Every flow has a Play button — hit it and see the data actually move through the stages.</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">🎮</div>
+        <h4>Try it yourself</h4>
+        <p>The branch simulator lets you commit and branch like a real repo — see the tree grow live.</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">🎭</div>
+        <h4>Playwright + Git</h4>
+        <p>Write a Wikipedia test, then walk through every git command to push it as a PR.</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">🧪</div>
+        <h4>Tester-first</h4>
+        <p>Analogies and workflows written for QA, not for developers.</p>
+      </div>
+    </div>
+
+    <p style="margin-top: 24px; color: var(--text-dim); font-size: 14px;">👉 Click any topic on the left to begin.</p>
+  </section>
+
+  <!-- ============ WHAT IS GIT ============ -->
+  <section id="s-git" class="section">
+    <h1>🧠 What is Git?</h1>
+    <p class="lead">Git is a <strong>Version Control System</strong> — a magical "save game" button for an entire project that also remembers every save you ever made.</p>
+
+    <div class="card tester">
+      <h3>🧪 Tester Analogy</h3>
+      <p>Imagine naming your test case files: <code>TestCase_v1.docx</code>, <code>TestCase_v2.docx</code>, <code>TestCase_v3_FINAL.docx</code>, <code>TestCase_v3_FINAL_really.docx</code>…<br><br>Painful. 😅<br><br><strong>Git does all of that automatically.</strong> Every version saved, every change tracked, every author known — and you can time-travel to any point.</p>
+    </div>
+
+    <h2>Why developers &amp; testers love Git</h2>
+    <div class="grid-2">
+      <div class="mini-card"><div class="mc-icon">⏮️</div><h4>Time Travel</h4><p>Go back to any version of your project from any point in history.</p></div>
+      <div class="mini-card"><div class="mc-icon">👥</div><h4>Teamwork</h4><p>Many people work on the same project at the same time — safely.</p></div>
+      <div class="mini-card"><div class="mc-icon">🧪</div><h4>Experiment Safely</h4><p>Try risky changes in a separate "branch" without breaking main.</p></div>
+      <div class="mini-card"><div class="mc-icon">📝</div><h4>Full History</h4><p>Who changed what, when, and why — perfect for audits and bug tracing.</p></div>
+    </div>
+
+    <h2>Key terms you'll hear a lot</h2>
+    <table class="cheat-table">
+      <tr><th>Term</th><th>Simple meaning</th></tr>
+      <tr><td>Repository</td><td>A project folder tracked by Git. Also called "repo".</td></tr>
+      <tr><td>Commit</td><td>A saved snapshot at a specific moment.</td></tr>
+      <tr><td>Branch</td><td>A separate line of work. Like a safe copy you can edit.</td></tr>
+      <tr><td>Clone</td><td>Downloading a repo to your computer.</td></tr>
+      <tr><td>Push</td><td>Uploading your changes to the shared online repo.</td></tr>
+      <tr><td>Pull</td><td>Downloading the latest changes from the shared online repo.</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ WHAT IS GITHUB ============ -->
+  <section id="s-github" class="section">
+    <h1>🐙 What is GitHub?</h1>
+    <p class="lead">If <strong>Git</strong> is the tool, <strong>GitHub</strong> is the <em>place</em> where projects live online — and where teams collaborate.</p>
+
+    <div class="card accent">
+      <h3>Easy way to remember</h3>
+      <p>🎮 <strong>Git</strong> = The app on your laptop that saves your game progress.<br>☁️ <strong>GitHub</strong> = The cloud server that stores your saves and lets friends join.</p>
+    </div>
+
+    <h2>Git vs GitHub</h2>
+    <table class="cheat-table">
+      <tr><th>Git</th><th>GitHub</th></tr>
+      <tr><td>A software/tool</td><td>A website / cloud platform</td></tr>
+      <tr><td>Runs on your computer</td><td>Runs on the internet</td></tr>
+      <tr><td>Tracks file changes</td><td>Hosts Git repositories online</td></tr>
+      <tr><td>Works offline</td><td>Needs internet</td></tr>
+      <tr><td>Free &amp; open source</td><td>Owned by Microsoft</td></tr>
+    </table>
+
+    <div class="card tester">
+      <h3>🧪 Where you'll meet GitHub as a tester</h3>
+      <p>• Opening a Pull Request to read what the developer changed<br>• Downloading a specific branch to test a fix<br>• Filing bug reports in "Issues"<br>• Reviewing commit history to see what changed between builds</p>
+    </div>
+  </section>
+
+  <!-- ============ WORKFLOW (ANIMATED) ============ -->
+  <section id="s-workflow" class="section">
+    <h1>🔁 The Git Workflow — Animated</h1>
+    <p class="lead">Watch a file travel through all 4 Git zones. Hit <strong>Play</strong> to see it flow.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="wf-play">▶ Play Full Flow</button>
+        <button class="btn secondary" id="wf-step">Step Forward</button>
+        <button class="btn secondary" id="wf-reset">↻ Reset</button>
+        <div class="step-indicator">Step <span class="current" id="wf-step-num">0</span> / 4</div>
+      </div>
+
+      <div class="workflow-anim">
+        <div class="zone" id="zone-0">
+          <div class="zone-icon">📝</div>
+          <div class="zone-title">Working Directory</div>
+          <div class="zone-cmd">you edit files</div>
+          <div class="zone-files" id="zf-0"></div>
+        </div>
+        <div class="zone" id="zone-1">
+          <div class="zone-icon">📥</div>
+          <div class="zone-title">Staging Area</div>
+          <div class="zone-cmd">git add</div>
+          <div class="zone-files" id="zf-1"></div>
+        </div>
+        <div class="zone" id="zone-2">
+          <div class="zone-icon">💾</div>
+          <div class="zone-title">Local Repo</div>
+          <div class="zone-cmd">git commit</div>
+          <div class="zone-files" id="zf-2"></div>
+        </div>
+        <div class="zone" id="zone-3">
+          <div class="zone-icon">☁️</div>
+          <div class="zone-title">Remote (GitHub)</div>
+          <div class="zone-cmd">git push</div>
+          <div class="zone-files" id="zf-3"></div>
+        </div>
+      </div>
+
+      <div class="terminal" style="margin-top:20px;">
+        <div class="terminal-header">
+          <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+          <span class="term-title">live terminal</span>
+        </div>
+        <div class="terminal-body" id="wf-term"><span class="term-out">Hit ▶ Play to begin...</span></div>
+      </div>
+    </div>
+
+    <div class="card tester">
+      <h3>🧪 Think of it like filing a bug</h3>
+      <p><strong>1. Working Directory:</strong> You're typing the bug report in Notepad.<br>
+      <strong>2. Staging:</strong> You're attaching screenshots — getting ready to submit.<br>
+      <strong>3. Local Repo:</strong> You hit "Save Draft" — it's saved on your machine.<br>
+      <strong>4. Remote (GitHub):</strong> You hit "Submit" — the team can see it.</p>
+    </div>
+  </section>
+
+  <!-- ============ BASIC COMMANDS ============ -->
+  <section id="s-commands" class="section">
+    <h1>💻 Basic Commands</h1>
+    <p class="lead">Click any command below to see what happens in the terminal.</p>
+
+    <div class="cmd-btn-row" id="cmdBtnRow">
+      <button class="cmd-btn active" data-cmd="clone">git clone</button>
+      <button class="cmd-btn" data-cmd="status">git status</button>
+      <button class="cmd-btn" data-cmd="add">git add</button>
+      <button class="cmd-btn" data-cmd="commit">git commit</button>
+      <button class="cmd-btn" data-cmd="fetch">git fetch origin</button>
+      <button class="cmd-btn" data-cmd="pull">git pull</button>
+      <button class="cmd-btn" data-cmd="push">git push</button>
+      <button class="cmd-btn" data-cmd="pushu">git push -u origin &lt;branch&gt;</button>
+      <button class="cmd-btn" data-cmd="diff">git diff</button>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+        <span class="term-title" id="termTitle">git clone</span>
+      </div>
+      <div class="terminal-body" id="termBody"></div>
+    </div>
+
+    <div class="card" id="cmdExplain"></div>
+  </section>
+
+  <!-- ============ BRANCHES (LIVE SIMULATOR) ============ -->
+  <section id="s-branches" class="section">
+    <h1>🌿 Branches — Live Simulator</h1>
+    <p class="lead">A branch is a separate line of work. Create commits and branches below — watch the tree grow in real time.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="sim-commit">+ Commit on <span id="curr-branch-label">main</span></button>
+        <button class="btn secondary" id="sim-branch">🌿 New Branch</button>
+        <button class="btn secondary" id="sim-switch">↔ Switch to main</button>
+        <button class="btn secondary" id="sim-reset">↻ Reset</button>
+      </div>
+
+      <div class="branch-canvas">
+        <svg id="branchSvg" viewBox="0 0 800 220" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="sim-log" id="simLog">
+        <div class="log-line"><span style="color:var(--green);">$</span> git init &nbsp; <span style="color:var(--text-dim);">// repo created on main</span></div>
+      </div>
+    </div>
+
+    <div class="card accent">
+      <h3>💡 Common branch names</h3>
+      <p><code>main</code> → the live, stable project &nbsp;&nbsp; <code>develop</code> → integration branch<br>
+      <code>feature/xyz</code> → new feature &nbsp;&nbsp; <code>bugfix/xyz</code> → fixing a bug<br>
+      <code>hotfix/xyz</code> → urgent production fix &nbsp;&nbsp; <code>test/xyz</code> → test automation work</p>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+        <span class="term-title">branch commands</span>
+      </div>
+      <div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git branch</span>  <span class="term-out">// list all branches</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git branch feature/login</span>  <span class="term-out">// create a branch</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git checkout feature/login</span>  <span class="term-out">// switch to it</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git checkout -b bugfix/cart</span>  <span class="term-out">// create AND switch</span></div>
+    </div>
+  </section>
+
+  <!-- ============ PULL REQUEST FLOW ============ -->
+  <section id="s-pr" class="section">
+    <h1>🔀 Pull Request Flow</h1>
+    <p class="lead">Click <strong>Next</strong> to walk through what happens at each stage of a Pull Request.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn secondary" id="pr-prev">← Previous</button>
+        <button class="btn" id="pr-next">Next →</button>
+        <button class="btn secondary" id="pr-reset">↻ Reset</button>
+        <div class="step-indicator">Step <span class="current" id="pr-step-num">1</span> / 5</div>
+      </div>
+
+      <div class="pr-flow">
+        <div class="pr-step" data-step="1">
+          <div class="ps-icon">🌿</div>
+          <div class="ps-num">STEP 1</div>
+          <div class="ps-title">Create Branch</div>
+        </div>
+        <div class="pr-step" data-step="2">
+          <div class="ps-icon">💾</div>
+          <div class="ps-num">STEP 2</div>
+          <div class="ps-title">Commit &amp; Push</div>
+        </div>
+        <div class="pr-step" data-step="3">
+          <div class="ps-icon">📬</div>
+          <div class="ps-num">STEP 3</div>
+          <div class="ps-title">Open PR</div>
+        </div>
+        <div class="pr-step" data-step="4">
+          <div class="ps-icon">👀</div>
+          <div class="ps-num">STEP 4</div>
+          <div class="ps-title">Review &amp; Test</div>
+        </div>
+        <div class="pr-step" data-step="5">
+          <div class="ps-icon">✅</div>
+          <div class="ps-num">STEP 5</div>
+          <div class="ps-title">Merge</div>
+        </div>
+      </div>
+
+      <div class="pr-detail" id="prDetail"></div>
+    </div>
+
+    <div class="card tester">
+      <h3>🧪 Your role as a tester in a PR</h3>
+      <p>1. Read the description — understand what changed.<br>
+      2. Check out the branch locally and test it.<br>
+      3. Look at the "Files Changed" tab for anything suspicious.<br>
+      4. Comment with your findings — pass, fail, bugs.<br>
+      5. Approve or Request Changes.</p>
+    </div>
+  </section>
+
+  <!-- ============ MERGE ANIMATED ============ -->
+  <section id="s-merge" class="section">
+    <h1>➕ Merge — Animated</h1>
+    <p class="lead">Merge combines two branches. Click <strong>Animate Merge</strong> to see it happen.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="merge-play">▶ Animate Merge</button>
+        <button class="btn secondary" id="merge-reset">↻ Reset</button>
+        <div class="step-indicator" id="merge-status">Ready</div>
+      </div>
+
+      <div class="branch-canvas">
+        <svg id="mergeSvg" viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="terminal" style="margin-top:16px;">
+        <div class="terminal-header">
+          <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+          <span class="term-title">merge terminal</span>
+        </div>
+        <div class="terminal-body" id="merge-term"><span class="term-out">Click ▶ Animate Merge</span></div>
+      </div>
+    </div>
+
+    <div class="card tester">
+      <h3>🧪 Tester Analogy</h3>
+      <p>Two testers each wrote test cases. Merge combines both into one master doc — keeping everyone's work intact. A "merge commit" ties them together.</p>
+    </div>
+
+    <div class="card accent">
+      <h3>✅ Pros &amp; ❌ Cons of Merge</h3>
+      <p>✅ Keeps the full real history &nbsp;&nbsp; ✅ Safe — no history is rewritten<br>
+      ❌ Can create a messy log with lots of "merge commits"</p>
+    </div>
+  </section>
+
+  <!-- ============ REBASE ANIMATED ============ -->
+  <section id="s-rebase" class="section">
+    <h1>📏 Rebase — Animated</h1>
+    <p class="lead">Rebase <strong>moves</strong> your commits onto the tip of another branch — making history a clean straight line. Click <strong>Animate Rebase</strong> to see it.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="rebase-play">▶ Animate Rebase</button>
+        <button class="btn secondary" id="rebase-reset">↻ Reset</button>
+        <div class="step-indicator" id="rebase-status">Ready</div>
+      </div>
+
+      <div class="branch-canvas">
+        <svg id="rebaseSvg" viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="terminal" style="margin-top:16px;">
+        <div class="terminal-header">
+          <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+          <span class="term-title">rebase terminal</span>
+        </div>
+        <div class="terminal-body" id="rebase-term"><span class="term-out">Click ▶ Animate Rebase</span></div>
+      </div>
+    </div>
+
+    <h2>Merge vs Rebase</h2>
+    <table class="cheat-table">
+      <tr><th>Merge</th><th>Rebase</th></tr>
+      <tr><td>Preserves exact history</td><td>Rewrites history for cleanliness</td></tr>
+      <tr><td>Creates a "merge commit"</td><td>No extra merge commit</td></tr>
+      <tr><td>History looks like a tree 🌳</td><td>History looks like a straight line 📏</td></tr>
+      <tr><td>Safe for shared branches</td><td>Risky on shared branches</td></tr>
+    </table>
+
+    <div class="card accent">
+      <h3>⚠️ Golden rule of rebase</h3>
+      <p>Only rebase your OWN private branch. <strong>Never rebase a branch others are working on.</strong></p>
+    </div>
+  </section>
+
+  <!-- ============ SQUASH ANIMATED ============ -->
+  <section id="s-squash" class="section">
+    <h1>📦 Squash — Animated</h1>
+    <p class="lead">Squash <strong>collapses many small commits into one clean commit</strong>. Click <strong>Animate Squash</strong> to watch 4 messy commits merge into one.</p>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="squash-play">▶ Animate Squash</button>
+        <button class="btn secondary" id="squash-reset">↻ Reset</button>
+        <div class="step-indicator" id="squash-status">Ready</div>
+      </div>
+
+      <div class="branch-canvas">
+        <svg id="squashSvg" viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="terminal" style="margin-top:16px;">
+        <div class="terminal-header">
+          <span class="term-dot d-red"></span><span class="term-dot d-amb"></span><span class="term-dot d-grn"></span>
+          <span class="term-title">squash terminal</span>
+        </div>
+        <div class="terminal-body" id="squash-term"><span class="term-out">Click ▶ Animate Squash</span></div>
+      </div>
+    </div>
+
+    <div class="card tester">
+      <h3>🧪 Tester Analogy</h3>
+      <p>You file 6 small bug reports: "typo", "typo v2", "oops", "fix again", "re-fix", "done". Noisy, right? Squash combines all 6 into one: <strong>"Fix login page typos"</strong>. Same result, way easier to read.</p>
+    </div>
+
+    <div class="card accent">
+      <h3>💡 When to use Squash</h3>
+      <p>Before opening a PR — tidy your messy WIP commits so reviewers see <strong>one clear change</strong> instead of 20 noisy ones.</p>
+    </div>
+  </section>
+
+  <!-- ============ PLAYWRIGHT + GIT ============ -->
+  <section id="s-playwright" class="section">
+    <h1>🎭 Playwright + Git — Real Workflow</h1>
+    <p class="lead">Let's write a <strong>real Playwright test</strong> for Wikipedia, then walk through every git command to push it as a Pull Request. Click <strong>Next Step</strong> to progress.</p>
+
+    <h2>Step 0 — The test we're going to add</h2>
+    <p>We'll write a simple Playwright test that opens Wikipedia, searches for "Playwright", and verifies the result page loads correctly.</p>
+
+    <div class="code-block">
+<span class="com">// tests/wikipedia-search.spec.js</span>
+<span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+test(<span class="str">'Wikipedia search for Playwright returns correct page'</span>, <span class="kw">async</span> ({ page }) =&gt; {
+  <span class="com">// 1. Open Wikipedia</span>
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'https://www.wikipedia.org'</span>);
+
+  <span class="com">// 2. Type into the search box</span>
+  <span class="kw">await</span> page.<span class="fn">fill</span>(<span class="str">'#searchInput'</span>, <span class="str">'Playwright'</span>);
+
+  <span class="com">// 3. Click the search button</span>
+  <span class="kw">await</span> page.<span class="fn">click</span>(<span class="str">'button[type="submit"]'</span>);
+
+  <span class="com">// 4. Verify the URL changed to the Playwright article</span>
+  <span class="kw">await</span> <span class="fn">expect</span>(page).<span class="fn">toHaveURL</span>(/Playwright/);
+
+  <span class="com">// 5. Verify the main heading contains "Playwright"</span>
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'h1'</span>)).<span class="fn">toContainText</span>(<span class="str">'Playwright'</span>);
+});
+
+test(<span class="str">'Wikipedia language link works'</span>, <span class="kw">async</span> ({ page }) =&gt; {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'https://www.wikipedia.org'</span>);
+  <span class="kw">await</span> page.<span class="fn">click</span>(<span class="str">'text=English'</span>);
+  <span class="kw">await</span> <span class="fn">expect</span>(page).<span class="fn">toHaveURL</span>(/en.wikipedia.org/);
+});</div>
+
+    <h2>Now — ship it with Git</h2>
+
+    <div class="interactive-box">
+      <div class="controls">
+        <button class="btn" id="pw-next">Next Step →</button>
+        <button class="btn secondary" id="pw-reset">↻ Reset</button>
+        <div class="step-indicator">Step <span class="current" id="pw-step-num">0</span> / 7</div>
+      </div>
+
+      <div class="combo-flow" id="comboFlow">
+        <div class="combo-step" data-step="1">
+          <div class="combo-num">1</div>
+          <div class="combo-body">
+            <h4>🌿 Create a test branch</h4>
+            <p>Start a new branch so you don't touch main while writing your test.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git checkout -b test/wikipedia-search</span>
+<span class="term-success">Switched to a new branch 'test/wikipedia-search'</span></div></div>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="2">
+          <div class="combo-num">2</div>
+          <div class="combo-body">
+            <h4>📝 Write the test file</h4>
+            <p>Create the file <code>tests/wikipedia-search.spec.js</code> with your Playwright code (shown above).</p>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="3">
+          <div class="combo-num">3</div>
+          <div class="combo-body">
+            <h4>🔍 Check what git sees</h4>
+            <p>Verify git has noticed your new file.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git status</span>
+<span class="term-out">On branch test/wikipedia-search
+Untracked files:
+  <span style="color:var(--red);">tests/wikipedia-search.spec.js</span></span></div></div>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="4">
+          <div class="combo-num">4</div>
+          <div class="combo-body">
+            <h4>➕ Stage &amp; commit the test</h4>
+            <p>Add the file to staging and commit it with a clear message.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git add tests/wikipedia-search.spec.js</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git commit -m "Add Playwright test for Wikipedia search"</span>
+<span class="term-success">[test/wikipedia-search 7a2b4c9] Add Playwright test for Wikipedia search</span>
+<span class="term-out"> 1 file changed, 18 insertions(+)</span></div></div>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="5">
+          <div class="combo-num">5</div>
+          <div class="combo-body">
+            <h4>📡 Fetch latest from the remote</h4>
+            <p>Grab any new work your teammates pushed — without changing your branch.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git fetch origin</span>
+<span class="term-out">remote: Enumerating objects: 12, done.
+From github.com:qa-team/web-tests
+ * [new branch]  bugfix/signup  -&gt; origin/bugfix/signup</span>
+<span class="term-success">✓ Remote info updated</span></div></div>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="6">
+          <div class="combo-num">6</div>
+          <div class="combo-body">
+            <h4>☁️ Push with upstream tracking</h4>
+            <p>First push of a new branch? Use <code>-u</code> so git remembers the link for future pulls/pushes.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git push -u origin test/wikipedia-search</span>
+<span class="term-out">Enumerating objects: 5, done.
+To github.com:qa-team/web-tests.git
+ * [new branch]  test/wikipedia-search -&gt; test/wikipedia-search</span>
+<span class="term-success">Branch 'test/wikipedia-search' set up to track 'origin/test/wikipedia-search'</span></div></div>
+          </div>
+        </div>
+
+        <div class="combo-step" data-step="7">
+          <div class="combo-num">7</div>
+          <div class="combo-body">
+            <h4>📬 Open the Pull Request on GitHub</h4>
+            <p>Go to the GitHub repo page. A yellow banner says "Compare &amp; pull request" — click it, add a description, and submit. Your test is now ready for review.</p>
+            <div class="terminal"><div class="terminal-body"><span class="term-success">✓ PR #87 opened: "Add Playwright test for Wikipedia search"</span>
+<span class="term-out">Reviewers: @ajinroch, @karan
+Status: ✅ CI tests passed · Awaiting review</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card tester">
+      <h3>🧪 Why this matters for you</h3>
+      <p>This is <strong>exactly</strong> how a QA engineer ships automation code. Every test case you write — Playwright, Selenium, Cypress — follows this same flow:
+      branch → write → stage → commit → fetch → push with <code>-u</code> → open PR. Memorize this sequence.</p>
+    </div>
+
+    <h2>What happens after you push?</h2>
+    <div class="grid-2">
+      <div class="mini-card">
+        <div class="mc-icon">🤖</div>
+        <h4>CI runs your test</h4>
+        <p>GitHub Actions (or Jenkins) automatically runs <code>npx playwright test</code> and shows a green ✅ or red ❌.</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">👥</div>
+        <h4>Team reviews</h4>
+        <p>Senior QA or dev reviews your test code — checks selectors, assertions, naming.</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">💬</div>
+        <h4>You address feedback</h4>
+        <p>Make changes locally → <code>git commit</code> → <code>git push</code> (no <code>-u</code> needed now).</p>
+      </div>
+      <div class="mini-card">
+        <div class="mc-icon">✅</div>
+        <h4>Merge &amp; celebrate</h4>
+        <p>Approved! Click "Squash and merge" — your test is now part of the main suite.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHEAT SHEET ============ -->
+  <section id="s-cheat" class="section">
+    <h1>📋 Complete Cheat Sheet</h1>
+    <p class="lead">Bookmark this. Everything you need in one place.</p>
+
+    <h2>Setup &amp; Config</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>git config --global user.name "You"</td><td>Set your name (one time)</td></tr>
+      <tr><td>git config --global user.email "you@x.com"</td><td>Set your email</td></tr>
+      <tr><td>git clone &lt;url&gt;</td><td>Download a repo from GitHub</td></tr>
+    </table>
+
+    <h2>Everyday workflow</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>git status</td><td>See what changed, what's staged</td></tr>
+      <tr><td>git add &lt;file&gt;</td><td>Stage a specific file</td></tr>
+      <tr><td>git add .</td><td>Stage everything changed</td></tr>
+      <tr><td>git commit -m "message"</td><td>Save a snapshot with a message</td></tr>
+      <tr><td>git fetch origin</td><td>Download remote updates (no auto-apply)</td></tr>
+      <tr><td>git pull</td><td>Fetch + merge the latest changes</td></tr>
+      <tr><td>git push</td><td>Upload commits to the already-linked branch</td></tr>
+      <tr><td>git push -u origin &lt;branch&gt;</td><td>First push of a new branch — sets upstream</td></tr>
+      <tr><td>git diff</td><td>Show unstaged changes</td></tr>
+    </table>
+
+    <h2>Branching</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>git branch</td><td>List all branches</td></tr>
+      <tr><td>git branch &lt;name&gt;</td><td>Create a new branch</td></tr>
+      <tr><td>git checkout &lt;name&gt;</td><td>Switch to a branch</td></tr>
+      <tr><td>git checkout -b &lt;name&gt;</td><td>Create &amp; switch in one command</td></tr>
+      <tr><td>git branch -d &lt;name&gt;</td><td>Delete a branch</td></tr>
+    </table>
+
+    <h2>Merge / Rebase / Squash</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>git merge &lt;branch&gt;</td><td>Combine another branch into current one</td></tr>
+      <tr><td>git rebase &lt;branch&gt;</td><td>Replay your commits on top of another branch</td></tr>
+      <tr><td>git rebase -i HEAD~N</td><td>Interactive rebase — squash last N commits</td></tr>
+    </table>
+
+    <h2>Playwright essentials (bonus)</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>npm init playwright@latest</td><td>Install Playwright in a project</td></tr>
+      <tr><td>npx playwright test</td><td>Run all tests</td></tr>
+      <tr><td>npx playwright test --headed</td><td>Run with the browser visible</td></tr>
+      <tr><td>npx playwright test file.spec.js</td><td>Run only one test file</td></tr>
+      <tr><td>npx playwright show-report</td><td>Open the HTML test report</td></tr>
+    </table>
+
+    <h2>Undoing things (lifesavers!)</h2>
+    <table class="cheat-table">
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td>git restore &lt;file&gt;</td><td>Discard changes in a file</td></tr>
+      <tr><td>git reset HEAD &lt;file&gt;</td><td>Unstage a file</td></tr>
+      <tr><td>git commit --amend</td><td>Edit the last commit message</td></tr>
+      <tr><td>git revert &lt;commit&gt;</td><td>Create a new commit that undoes an old one</td></tr>
+    </table>
+
+    <div class="card accent" style="margin-top:30px; text-align:center;">
+      <h3>🎉 You're ready!</h3>
+      <p>You now understand Git &amp; GitHub well enough to work alongside developers, review PRs, write Playwright tests, and ship them like a pro.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ============ Navigation ============
+  const navItems = document.querySelectorAll('.nav-item');
+  const sections = document.querySelectorAll('.section');
+  const progressBar = document.getElementById('progressBar');
+  const totalSections = sections.length;
+
+  navItems.forEach((item, idx) => {
+    item.addEventListener('click', () => {
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      sections.forEach(s => s.classList.remove('active'));
+      document.getElementById(item.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      progressBar.style.width = ((idx + 1) / totalSections * 100) + '%';
+    });
+  });
+  progressBar.style.width = (1 / totalSections * 100) + '%';
+
+  // ============ WORKFLOW ANIMATION ============
+  const wfSteps = [
+    { term: '<span class="term-out">Starting... you edit a file in your project.</span>', zone: 0, label: 'login.html' },
+    { term: '<span class="term-prompt">$</span> <span class="term-cmd">git add login.html</span>\n<span class="term-success">✓ Staged</span>', zone: 1, label: 'login.html' },
+    { term: '<span class="term-prompt">$</span> <span class="term-cmd">git commit -m "Fix login layout"</span>\n<span class="term-success">[main a1b2c3] Fix login layout</span>', zone: 2, label: 'commit a1b2c3' },
+    { term: '<span class="term-prompt">$</span> <span class="term-cmd">git push origin main</span>\n<span class="term-success">✓ Pushed to GitHub</span>', zone: 3, label: 'commit a1b2c3' }
+  ];
+  let wfCurrent = 0;
+
+  function wfRender() {
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
+    document.querySelectorAll('.zone-files').forEach(f => f.innerHTML = '');
+    document.getElementById('wf-term').innerHTML = '<span class="term-out">Hit ▶ Play to begin...</span>';
+    document.getElementById('wf-step-num').textContent = '0';
+  }
+
+  function wfApplyStep(i) {
+    if (i < 0 || i >= wfSteps.length) return;
+    const step = wfSteps[i];
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
+    document.getElementById('zone-' + step.zone).classList.add('active');
+    // clear all file chips
+    document.querySelectorAll('.zone-files').forEach(f => f.innerHTML = '');
+    // put file chip in all zones up to current
+    for (let k = 0; k <= i; k++) {
+      const z = document.getElementById('zf-' + wfSteps[k].zone);
+      z.innerHTML = '<div class="file-chip">' + wfSteps[k].label + '</div>';
+    }
+    document.getElementById('wf-term').innerHTML = step.term;
+    document.getElementById('wf-step-num').textContent = (i + 1);
+  }
+
+  document.getElementById('wf-play').addEventListener('click', () => {
+    wfRender();
+    wfCurrent = 0;
+    const iv = setInterval(() => {
+      wfApplyStep(wfCurrent);
+      wfCurrent++;
+      if (wfCurrent >= wfSteps.length) clearInterval(iv);
+    }, 1100);
+  });
+
+  document.getElementById('wf-step').addEventListener('click', () => {
+    if (wfCurrent >= wfSteps.length) wfCurrent = 0;
+    wfApplyStep(wfCurrent);
+    wfCurrent++;
+  });
+
+  document.getElementById('wf-reset').addEventListener('click', () => {
+    wfCurrent = 0;
+    wfRender();
+  });
+
+  // ============ COMMAND RUNNER ============
+  const commandData = {
+    clone: {
+      title: "git clone",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git clone https://github.com/team/project.git</span>
+<span class="term-out">Cloning into 'project'...
+remote: Enumerating objects: 142, done.
+Receiving objects: 100% (142/142), 48.21 KiB</span>
+<span class="term-success">✓ Done</span>`,
+      explain: "<h3>📥 git clone</h3><p>Downloads an existing project from GitHub to your computer. Think of it as the first time you join a project — you \"clone\" it to get a local copy.</p>"
+    },
+    status: {
+      title: "git status",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git status</span>
+<span class="term-out">On branch main
+Changes not staged for commit:
+  <span style="color:#f87171">modified:   login.html</span>
+  <span style="color:#f87171">modified:   style.css</span>
+
+Untracked files:
+  <span style="color:#f87171">notes.txt</span></span>`,
+      explain: "<h3>🔍 git status</h3><p>Your most-used command. Shows which branch you're on, which files have been changed, which are staged, and which are untracked.</p>"
+    },
+    add: {
+      title: "git add",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git add login.html</span>
+<span class="term-out">(login.html is now staged)</span>
+
+<span class="term-prompt">$</span> <span class="term-cmd">git add .</span>
+<span class="term-success">✓ All changes staged</span>`,
+      explain: "<h3>➕ git add</h3><p>Moves changes from your working directory to the staging area — saying \"include these in my next commit.\" Use <code>git add .</code> to stage everything.</p>"
+    },
+    commit: {
+      title: "git commit",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git commit -m "Fix login button alignment"</span>
+<span class="term-success">[main a1b2c3d] Fix login button alignment</span>
+<span class="term-out"> 2 files changed, 15 insertions(+), 3 deletions(-)</span>`,
+      explain: "<h3>💾 git commit</h3><p>Takes a permanent snapshot of your staged changes. The <code>-m</code> flag adds a short message. Good commit messages help your team understand what changed.</p>"
+    },
+    fetch: {
+      title: "git fetch origin",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git fetch origin</span>
+<span class="term-out">remote: Enumerating objects: 24, done.
+From github.com:team/project
+ * [new branch]      bugfix/cart     -&gt; origin/bugfix/cart
+   e4f5g6..a1b2c3   main            -&gt; origin/main</span>
+<span class="term-success">✓ Remote tracking info updated</span>`,
+      explain: "<h3>📡 git fetch origin</h3><p>Downloads the latest info from the remote (GitHub) — new branches, new commits — but <strong>does NOT change your local branch</strong>. Think of it as \"let me see what's new, but don't touch my work yet.\" Great before deciding to pull or switch branches.</p>"
+    },
+    pull: {
+      title: "git pull",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git pull origin main</span>
+<span class="term-out">Updating e4f5g6..a1b2c3
+Fast-forward
+  cart.js | 10 +++++---
+  1 file changed, 7 insertions(+), 3 deletions(-)</span>
+<span class="term-success">✓ Up to date</span>`,
+      explain: "<h3>⬇️ git pull</h3><p>Downloads the latest changes AND applies them to your local branch. Equal to <code>git fetch</code> + <code>git merge</code>. Run this every morning to stay in sync.</p>"
+    },
+    push: {
+      title: "git push",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git push</span>
+<span class="term-out">Enumerating objects: 5, done.
+Writing objects: 100% (3/3), 294 bytes
+To github.com:team/project.git
+   e4f5g6..a1b2c3  main -&gt; main</span>
+<span class="term-success">✓ Pushed to GitHub</span>`,
+      explain: "<h3>☁️ git push</h3><p>Uploads your local commits to the remote repo. Works when your branch already has an upstream link (set earlier by <code>-u</code> or by cloning).</p>"
+    },
+    pushu: {
+      title: "git push -u origin <branch>",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git push -u origin test/wikipedia-search</span>
+<span class="term-out">Enumerating objects: 5, done.
+To github.com:qa-team/web-tests.git
+ * [new branch]  test/wikipedia-search -&gt; test/wikipedia-search</span>
+<span class="term-success">Branch 'test/wikipedia-search' set up to track 'origin/test/wikipedia-search' from 'origin'.</span>`,
+      explain: "<h3>🔗 git push -u origin &lt;branch&gt;</h3><p>Use this the <strong>first time</strong> you push a brand-new branch. The <code>-u</code> (short for <code>--set-upstream</code>) tells git: \"link my local branch to this remote branch forever.\" After this, you can just run <code>git push</code> and <code>git pull</code> without specifying the branch name again.</p>"
+    },
+    diff: {
+      title: "git diff",
+      output: `<span class="term-prompt">$</span> <span class="term-cmd">git diff</span>
+<span class="term-out">diff --git a/login.html b/login.html</span>
+<span style="color:#f87171">- &lt;button class="btn"&gt;Login&lt;/button&gt;</span>
+<span style="color:#4ade80">+ &lt;button class="btn btn-primary"&gt;Login&lt;/button&gt;</span>`,
+      explain: "<h3>🔎 git diff</h3><p>Shows you line-by-line what you've changed. Red lines (<span style='color:#f87171'>-</span>) removed, green lines (<span style='color:#4ade80'>+</span>) added. Very useful before committing.</p>"
+    }
+  };
+
+  const cmdBtns = document.querySelectorAll('.cmd-btn');
+  function showCommand(cmd) {
+    const data = commandData[cmd];
+    if (!data) return;
+    document.getElementById('termTitle').textContent = data.title;
+    document.getElementById('termBody').innerHTML = data.output;
+    document.getElementById('cmdExplain').innerHTML = data.explain;
+  }
+  cmdBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      cmdBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showCommand(btn.dataset.cmd);
+    });
+  });
+  showCommand('clone');
+
+  // ============ BRANCH SIMULATOR ============
+  const branchSvg = document.getElementById('branchSvg');
+  const branches = {
+    main: { y: 110, color: '#6ea8ff', commits: [{ x: 60 }] }
+  };
+  let currentBranch = 'main';
+  let branchCounter = 0;
+  const branchColors = ['#a78bfa', '#4ade80', '#fbbf24', '#f472b6', '#22d3ee'];
+
+  function renderBranches() {
+    branchSvg.innerHTML = '';
+    // Draw each branch
+    Object.keys(branches).forEach(name => {
+      const b = branches[name];
+      if (b.commits.length === 0) return;
+      const startX = b.commits[0].x;
+      const endX = b.commits[b.commits.length - 1].x;
+      // branch line
+      if (name !== 'main') {
+        const parentX = b.parentX;
+        branchSvg.innerHTML += `<path d="M ${parentX} 110 Q ${parentX + 20} ${b.y} ${startX} ${b.y}" stroke="${b.color}" stroke-width="3" fill="none"/>`;
+      }
+      branchSvg.innerHTML += `<line x1="${startX}" y1="${b.y}" x2="${endX}" y2="${b.y}" stroke="${b.color}" stroke-width="3"/>`;
+      // commits
+      b.commits.forEach(c => {
+        branchSvg.innerHTML += `<circle cx="${c.x}" cy="${b.y}" r="9" fill="${b.color}" stroke="${currentBranch === name ? '#fff' : 'none'}" stroke-width="2"/>`;
+      });
+      // label
+      branchSvg.innerHTML += `<text x="${endX + 15}" y="${b.y + 5}" fill="${b.color}" font-family="monospace" font-size="12">${name}</text>`;
+    });
+  }
+
+  function log(msg) {
+    const el = document.getElementById('simLog');
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = msg;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function updateBranchLabel() {
+    document.getElementById('curr-branch-label').textContent = currentBranch;
+  }
+
+  document.getElementById('sim-commit').addEventListener('click', () => {
+    const b = branches[currentBranch];
+    const lastX = b.commits[b.commits.length - 1].x;
+    if (lastX > 720) {
+      log(`<span style="color:var(--amber);">⚠ Canvas full — reset to continue</span>`);
+      return;
+    }
+    const newX = lastX + 70;
+    b.commits.push({ x: newX });
+    const hash = Math.random().toString(16).substring(2, 8);
+    log(`<span style="color:var(--green);">$</span> git commit -m "work" <span style="color:var(--text-dim);">// new commit ${hash} on ${currentBranch}</span>`);
+    renderBranches();
+  });
+
+  document.getElementById('sim-branch').addEventListener('click', () => {
+    const b = branches[currentBranch];
+    const lastX = b.commits[b.commits.length - 1].x;
+    const name = currentBranch === 'main' ? `feature/${['login','cart','checkout','auth','search'][branchCounter % 5]}` : `sub-${branchCounter}`;
+    const yOffset = Object.keys(branches).length % 2 === 1 ? -60 : 60;
+    branches[name] = {
+      y: 110 + yOffset,
+      color: branchColors[branchCounter % branchColors.length],
+      parentX: lastX,
+      commits: [{ x: lastX + 60 }]
+    };
+    currentBranch = name;
+    branchCounter++;
+    updateBranchLabel();
+    log(`<span style="color:var(--green);">$</span> git checkout -b ${name} <span style="color:var(--text-dim);">// new branch created</span>`);
+    renderBranches();
+  });
+
+  document.getElementById('sim-switch').addEventListener('click', () => {
+    currentBranch = 'main';
+    updateBranchLabel();
+    log(`<span style="color:var(--green);">$</span> git checkout main`);
+    renderBranches();
+  });
+
+  document.getElementById('sim-reset').addEventListener('click', () => {
+    Object.keys(branches).forEach(k => { if (k !== 'main') delete branches[k]; });
+    branches.main.commits = [{ x: 60 }];
+    currentBranch = 'main';
+    branchCounter = 0;
+    updateBranchLabel();
+    document.getElementById('simLog').innerHTML = '<div class="log-line"><span style="color:var(--green);">$</span> git init &nbsp; <span style="color:var(--text-dim);">// repo reset</span></div>';
+    renderBranches();
+  });
+
+  renderBranches();
+
+  // ============ PR FLOW ============
+  const prDetails = {
+    1: {
+      title: "🌿 Step 1 — Create a feature branch",
+      body: `<p>You start fresh — never work directly on <code>main</code>. Create a branch for your work.</p>
+      <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git checkout -b feature/login-fix</span>
+<span class="term-success">Switched to a new branch 'feature/login-fix'</span></div></div>`
+    },
+    2: {
+      title: "💾 Step 2 — Commit &amp; push your work",
+      body: `<p>Make your changes, commit them, and push to GitHub so others can see.</p>
+      <div class="terminal"><div class="terminal-body"><span class="term-prompt">$</span> <span class="term-cmd">git add .</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git commit -m "Fix login redirect bug"</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git push -u origin feature/login-fix</span>
+<span class="term-success">✓ Branch pushed to GitHub</span></div></div>`
+    },
+    3: {
+      title: "📬 Step 3 — Open the Pull Request",
+      body: `<p>On GitHub, click "Compare &amp; pull request". Add a clear title, description of what/why, and screenshots if helpful. Request reviewers.</p>
+      <p><strong>PR Title:</strong> Fix login redirect bug<br>
+      <strong>Description:</strong> Users were being redirected to a 404 page after login. Updated the redirect URL to point to /dashboard.<br>
+      <strong>Reviewers:</strong> @senior-dev, @qa-lead</p>`
+    },
+    4: {
+      title: "👀 Step 4 — Review &amp; test",
+      body: `<p>The team reviews the code and tests the branch. As a tester, you:</p>
+      <p>• Pull the branch: <code>git checkout feature/login-fix</code><br>
+      • Run the app and test the fix<br>
+      • Check the "Files Changed" tab on GitHub<br>
+      • Comment on specific lines with findings<br>
+      • Approve ✅ or Request Changes ❌</p>`
+    },
+    5: {
+      title: "✅ Step 5 — Merge into main",
+      body: `<p>Once approved and CI tests pass, click "Merge Pull Request" (or "Squash and merge"). The code is now live in <code>main</code> — ready for the next release.</p>
+      <div class="terminal"><div class="terminal-body"><span class="term-success">✓ PR #42 merged into main</span>
+<span class="term-out">Branch 'feature/login-fix' can now be safely deleted.</span></div></div>`
+    }
+  };
+
+  let prStep = 1;
+  function renderPr() {
+    document.querySelectorAll('.pr-step').forEach(s => {
+      const n = parseInt(s.dataset.step);
+      s.classList.remove('active', 'done');
+      if (n < prStep) s.classList.add('done');
+      if (n === prStep) s.classList.add('active');
+    });
+    document.getElementById('pr-step-num').textContent = prStep;
+    const d = prDetails[prStep];
+    document.getElementById('prDetail').innerHTML = `<h3>${d.title}</h3>${d.body}`;
+  }
+
+  document.getElementById('pr-next').addEventListener('click', () => {
+    if (prStep < 5) { prStep++; renderPr(); }
+  });
+  document.getElementById('pr-prev').addEventListener('click', () => {
+    if (prStep > 1) { prStep--; renderPr(); }
+  });
+  document.getElementById('pr-reset').addEventListener('click', () => {
+    prStep = 1; renderPr();
+  });
+  renderPr();
+
+  // ============ MERGE ANIMATION ============
+  const mergeSvg = document.getElementById('mergeSvg');
+
+  function drawMergeInitial() {
+    mergeSvg.innerHTML = `
+      <line x1="40" y1="130" x2="300" y2="130" stroke="#6ea8ff" stroke-width="3"/>
+      <circle cx="60" cy="130" r="9" fill="#6ea8ff"/>
+      <circle cx="140" cy="130" r="9" fill="#6ea8ff"/>
+      <circle cx="220" cy="130" r="9" fill="#6ea8ff"/>
+      <text x="40" y="170" fill="#9aa5c7" font-family="monospace" font-size="12">main</text>
+      <path d="M 140 130 Q 170 70 220 70 L 320 70" stroke="#a78bfa" stroke-width="3" fill="none"/>
+      <circle cx="240" cy="70" r="9" fill="#a78bfa"/>
+      <circle cx="320" cy="70" r="9" fill="#a78bfa"/>
+      <text x="200" y="50" fill="#a78bfa" font-family="monospace" font-size="12">feature</text>
+    `;
+    document.getElementById('merge-term').innerHTML = '<span class="term-out">Click ▶ Animate Merge</span>';
+    document.getElementById('merge-status').textContent = 'Ready';
+  }
+
+  async function animateMerge() {
+    document.getElementById('merge-status').textContent = 'Running...';
+    document.getElementById('merge-term').innerHTML = '<span class="term-prompt">$</span> <span class="term-cmd">git checkout main</span>';
+    await sleep(900);
+    document.getElementById('merge-term').innerHTML += '\n<span class="term-prompt">$</span> <span class="term-cmd">git merge feature</span>';
+    await sleep(700);
+    // Draw merge commit on main
+    mergeSvg.innerHTML += `<line x1="300" y1="130" x2="440" y2="130" stroke="#6ea8ff" stroke-width="3" stroke-dasharray="5,5"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.5s" repeatCount="indefinite"/></line>`;
+    await sleep(800);
+    // Final line + merge commit
+    mergeSvg.innerHTML = `
+      <line x1="40" y1="130" x2="460" y2="130" stroke="#6ea8ff" stroke-width="3"/>
+      <circle cx="60" cy="130" r="9" fill="#6ea8ff"/>
+      <circle cx="140" cy="130" r="9" fill="#6ea8ff"/>
+      <circle cx="220" cy="130" r="9" fill="#6ea8ff"/>
+      <path d="M 140 130 Q 170 70 220 70 L 320 70 Q 400 70 440 130" stroke="#a78bfa" stroke-width="3" fill="none"/>
+      <circle cx="240" cy="70" r="9" fill="#a78bfa"/>
+      <circle cx="320" cy="70" r="9" fill="#a78bfa"/>
+      <circle cx="440" cy="130" r="13" fill="#4ade80">
+        <animate attributeName="r" from="20" to="13" dur="0.5s"/>
+      </circle>
+      <text x="420" y="170" fill="#4ade80" font-family="monospace" font-size="11">merge commit</text>
+      <text x="40" y="170" fill="#9aa5c7" font-family="monospace" font-size="12">main</text>
+      <text x="200" y="50" fill="#a78bfa" font-family="monospace" font-size="12">feature</text>
+    `;
+    document.getElementById('merge-term').innerHTML += '\n<span class="term-success">Merge made by the \'ort\' strategy.</span>\n<span class="term-out"> 2 files changed, 15 insertions(+), 3 deletions(-)</span>';
+    document.getElementById('merge-status').textContent = '✓ Merged';
+  }
+
+  document.getElementById('merge-play').addEventListener('click', animateMerge);
+  document.getElementById('merge-reset').addEventListener('click', drawMergeInitial);
+  drawMergeInitial();
+
+  // ============ REBASE ANIMATION (IMPROVED) ============
+  const rebaseSvg = document.getElementById('rebaseSvg');
+
+  function drawRebaseInitial() {
+    rebaseSvg.innerHTML = `
+      <!-- Heading note -->
+      <text x="40" y="25" fill="#9aa5c7" font-size="11" font-family="monospace">BEFORE: feature branched off M2 — behind main by 2 commits (M3, M4)</text>
+
+      <!-- MAIN branch line -->
+      <line x1="40" y1="130" x2="340" y2="130" stroke="#6ea8ff" stroke-width="3"/>
+      <circle cx="60" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="60" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M1</text>
+      <circle cx="140" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="140" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M2</text>
+      <circle cx="220" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="220" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M3</text>
+      <circle cx="300" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="300" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M4</text>
+      <text x="40" y="200" fill="#6ea8ff" font-family="monospace" font-size="13">main</text>
+
+      <!-- FEATURE branch - branched off M2 -->
+      <path d="M 140 130 Q 170 70 220 70 L 300 70" stroke="#a78bfa" stroke-width="3" fill="none"/>
+      <circle cx="220" cy="70" r="10" fill="#a78bfa"/>
+      <text x="220" y="50" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">F1</text>
+      <circle cx="300" cy="70" r="10" fill="#a78bfa"/>
+      <text x="300" y="50" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">F2</text>
+      <text x="340" y="75" fill="#a78bfa" font-family="monospace" font-size="13">feature</text>
+    `;
+    document.getElementById('rebase-term').innerHTML = '<span class="term-out">Click ▶ Animate Rebase. Watch F1 and F2 lift off M2, slide right, and land after M4.</span>';
+    document.getElementById('rebase-status').textContent = 'Ready';
+  }
+
+  async function animateRebase() {
+    document.getElementById('rebase-status').textContent = '🔍 Phase 1: Find old base & new base';
+    document.getElementById('rebase-term').innerHTML =
+      '<span class="term-prompt">$</span> <span class="term-cmd">git checkout feature</span>\n' +
+      '<span class="term-prompt">$</span> <span class="term-cmd">git rebase main</span>';
+
+    rebaseSvg.innerHTML = `
+      <!-- Narration at top -->
+      <text x="40" y="25" fill="#fbbf24" font-size="11" font-family="monospace">REBASE: lift feature commits off M2 → drop them after M4</text>
+
+      <!-- MAIN branch -->
+      <line x1="40" y1="130" x2="340" y2="130" stroke="#6ea8ff" stroke-width="3"/>
+      <!-- Extended main line (appears once commits land) -->
+      <line x1="340" y1="130" x2="500" y2="130" stroke="#6ea8ff" stroke-width="3" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="6.5s" fill="freeze"/>
+      </line>
+
+      <circle cx="60" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="60" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M1</text>
+      <circle cx="140" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="140" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M2</text>
+      <circle cx="220" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="220" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M3</text>
+      <circle cx="300" cy="130" r="10" fill="#6ea8ff"/>
+      <text x="300" y="158" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">M4</text>
+      <text x="40" y="200" fill="#6ea8ff" font-family="monospace" font-size="13">main</text>
+
+      <!-- OLD BASE highlight on M2 (yellow pulsing ring + label) -->
+      <circle cx="140" cy="130" r="18" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4,3" opacity="0">
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.8s" begin="0.3s" fill="freeze"/>
+        <animate attributeName="r" values="18;24;18" dur="1.2s" begin="0.3s" repeatCount="2"/>
+      </circle>
+      <text x="140" y="185" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="monospace" opacity="0">
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.8s" begin="0.3s" fill="freeze"/>
+        ⚠ OLD base
+      </text>
+
+      <!-- NEW BASE highlight on M4 (green pulsing ring + label) -->
+      <circle cx="300" cy="130" r="18" fill="none" stroke="#4ade80" stroke-width="2" stroke-dasharray="4,3" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1s" fill="freeze"/>
+        <animate attributeName="opacity" from="1" to="0" dur="0.3s" begin="6.8s" fill="freeze"/>
+        <animate attributeName="r" values="18;24;18" dur="1.2s" begin="1s" repeatCount="3"/>
+      </circle>
+      <text x="300" y="185" text-anchor="middle" fill="#4ade80" font-size="10" font-family="monospace" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1s" fill="freeze"/>
+        <animate attributeName="opacity" from="1" to="0" dur="0.3s" begin="6.8s" fill="freeze"/>
+        ✓ NEW base
+      </text>
+
+      <!-- OLD feature branch curve - fades out as commits leave -->
+      <path d="M 140 130 Q 170 70 220 70 L 300 70" stroke="#a78bfa" stroke-width="3" fill="none" opacity="0.9">
+        <animate attributeName="opacity" from="0.9" to="0.15" dur="0.6s" begin="3s" fill="freeze"/>
+        <animate attributeName="opacity" from="0.15" to="0" dur="0.4s" begin="6.5s" fill="freeze"/>
+      </path>
+
+      <!-- F1 group - LIFT, SLIDE, DROP (uses animateTransform on the group) -->
+      <g>
+        <circle cx="220" cy="70" r="10" fill="#a78bfa"/>
+        <text x="220" y="50" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">F1</text>
+        <animateTransform
+          attributeName="transform"
+          type="translate"
+          values="0,0; 0,-30; 160,-30; 160,60"
+          keyTimes="0; 0.2; 0.7; 1"
+          dur="2s"
+          begin="2.8s"
+          fill="freeze"/>
+      </g>
+
+      <!-- F2 group - LIFT, SLIDE, DROP -->
+      <g>
+        <circle cx="300" cy="70" r="10" fill="#a78bfa"/>
+        <text x="300" y="50" text-anchor="middle" fill="#9aa5c7" font-size="11" font-family="monospace">F2</text>
+        <animateTransform
+          attributeName="transform"
+          type="translate"
+          values="0,0; 0,-30; 160,-30; 160,60"
+          keyTimes="0; 0.2; 0.7; 1"
+          dur="2s"
+          begin="4.8s"
+          fill="freeze"/>
+      </g>
+
+      <!-- Final feature label at the new end -->
+      <text x="500" y="135" fill="#a78bfa" font-family="monospace" font-size="13" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="7s" fill="freeze"/>
+        feature
+      </text>
+    `;
+
+    // Narration synced to the SVG animation
+    await sleep(500);
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-warn">→ Current base: M2 (yellow ring)</span>';
+
+    await sleep(1200);
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-success">→ Target base: M4 (green ring)</span>';
+
+    await sleep(1200);
+    document.getElementById('rebase-status').textContent = '📦 Phase 2: Lift F1 off its old base';
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-out">Picking up F1...</span>';
+
+    await sleep(900);
+    document.getElementById('rebase-status').textContent = '➡ Slide F1 across to new base';
+
+    await sleep(900);
+    document.getElementById('rebase-status').textContent = '⬇ Drop F1 after M4';
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-success">✓ F1 landed after M4</span>';
+
+    await sleep(500);
+    document.getElementById('rebase-status').textContent = '📦 Phase 3: Repeat for F2';
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-out">Picking up F2...</span>';
+
+    await sleep(1600);
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-success">✓ F2 landed after F1</span>';
+
+    await sleep(500);
+    document.getElementById('rebase-term').innerHTML += '\n<span class="term-success">✓ Successfully rebased and updated feature.</span>';
+    document.getElementById('rebase-status').textContent = '✓ Straight line — one clean history!';
+  }
+
+  document.getElementById('rebase-play').addEventListener('click', animateRebase);
+  document.getElementById('rebase-reset').addEventListener('click', drawRebaseInitial);
+  drawRebaseInitial();
+
+  // ============ SQUASH ANIMATION ============
+  const squashSvg = document.getElementById('squashSvg');
+
+  function drawSquashInitial() {
+    squashSvg.innerHTML = `
+      <line x1="40" y1="110" x2="560" y2="110" stroke="#a78bfa" stroke-width="3"/>
+      <circle cx="100" cy="110" r="9" fill="#a78bfa"/>
+      <text x="80" y="140" fill="#9aa5c7" font-size="10" font-family="monospace">"wip"</text>
+      <circle cx="220" cy="110" r="9" fill="#a78bfa"/>
+      <text x="200" y="140" fill="#9aa5c7" font-size="10" font-family="monospace">"fix"</text>
+      <circle cx="340" cy="110" r="9" fill="#a78bfa"/>
+      <text x="315" y="140" fill="#9aa5c7" font-size="10" font-family="monospace">"oops"</text>
+      <circle cx="460" cy="110" r="9" fill="#a78bfa"/>
+      <text x="440" y="140" fill="#9aa5c7" font-size="10" font-family="monospace">"done"</text>
+      <text x="40" y="80" fill="#9aa5c7" font-family="monospace" font-size="12">4 messy commits</text>
+    `;
+    document.getElementById('squash-term').innerHTML = '<span class="term-out">Click ▶ Animate Squash</span>';
+    document.getElementById('squash-status').textContent = 'Ready';
+  }
+
+  async function animateSquash() {
+    document.getElementById('squash-status').textContent = 'Running...';
+    document.getElementById('squash-term').innerHTML = '<span class="term-prompt">$</span> <span class="term-cmd">git rebase -i HEAD~4</span>';
+    await sleep(800);
+    // Pulse/shrink the 4 commits
+    squashSvg.innerHTML = `
+      <line x1="40" y1="110" x2="560" y2="110" stroke="#a78bfa" stroke-width="3" opacity="0.5"/>
+      <circle cx="100" cy="110" r="9" fill="#a78bfa" opacity="0.4">
+        <animate attributeName="cx" from="100" to="280" dur="0.8s" fill="freeze"/>
+      </circle>
+      <circle cx="220" cy="110" r="9" fill="#a78bfa" opacity="0.4">
+        <animate attributeName="cx" from="220" to="280" dur="0.8s" fill="freeze"/>
+      </circle>
+      <circle cx="340" cy="110" r="9" fill="#a78bfa" opacity="0.4">
+        <animate attributeName="cx" from="340" to="280" dur="0.8s" fill="freeze"/>
+      </circle>
+      <circle cx="460" cy="110" r="9" fill="#a78bfa" opacity="0.4">
+        <animate attributeName="cx" from="460" to="280" dur="0.8s" fill="freeze"/>
+      </circle>
+      <text x="40" y="80" fill="#fbbf24" font-family="monospace" font-size="12">⬇ collapsing...</text>
+    `;
+    await sleep(1000);
+    // Final single commit
+    squashSvg.innerHTML = `
+      <line x1="40" y1="110" x2="560" y2="110" stroke="#4ade80" stroke-width="3"/>
+      <circle cx="280" cy="110" r="14" fill="#4ade80">
+        <animate attributeName="r" from="22" to="14" dur="0.5s"/>
+      </circle>
+      <text x="200" y="150" fill="#4ade80" font-family="monospace" font-size="12">"Fix login page typos"</text>
+      <text x="40" y="80" fill="#4ade80" font-family="monospace" font-size="12">✓ 1 clean commit</text>
+    `;
+    document.getElementById('squash-term').innerHTML += '\n<span class="term-success">✓ 4 commits combined into 1</span>';
+    document.getElementById('squash-status').textContent = '✓ Squashed';
+  }
+
+  document.getElementById('squash-play').addEventListener('click', animateSquash);
+  document.getElementById('squash-reset').addEventListener('click', drawSquashInitial);
+  drawSquashInitial();
+
+  // ============ PLAYWRIGHT + GIT STEPS ============
+  let pwStep = 0;
+  const pwTotal = 7;
+
+  function renderPw() {
+    document.querySelectorAll('.combo-step').forEach(s => {
+      const n = parseInt(s.dataset.step);
+      s.classList.toggle('visible', n <= pwStep);
+    });
+    document.getElementById('pw-step-num').textContent = pwStep;
+  }
+
+  document.getElementById('pw-next').addEventListener('click', () => {
+    if (pwStep < pwTotal) {
+      pwStep++;
+      renderPw();
+      // scroll to the step just revealed
+      const el = document.querySelector(`.combo-step[data-step="${pwStep}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+  document.getElementById('pw-reset').addEventListener('click', () => {
+    pwStep = 0; renderPw();
+  });
+  renderPw();
+
+  // Helper
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+</script>
+
+</body>
+</html>
